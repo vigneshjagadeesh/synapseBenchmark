@@ -1,0 +1,115 @@
+% This file produces the 
+% a) options for training
+% b) directories for dataset folders and
+% c) all kinds of filter banks (Gabor, Gist, Zernike, Texton, ..., and etc)
+
+function bmark = f_initializeParams()
+if( ispc )
+    bmark.parDir = '../../../';                                     bmark.dataDir = '../../../synapseDataset/';
+elseif( isunix )
+    bmark.parDir = '../../../';                                     bmark.dataDir = '/cluster/home/retinamap/datasetCreator/utahDataBase/';
+else
+    bmark.parDir = '/cluster/home/vignesh/synapseProject/';         bmark.dataDir = '/cluster/data/synapseDataset/';
+end
+
+bmark.types         = { 'synapses', 'random' };
+bmark.tasks         = { 'synapsedetection' };
+bmark.features      = { 'gaborwavelets','textonEnergy','texton','morph1','morph2','gist','lbp','lbpr','ray','radon','zernike','cfmt' };%12
+bmark.learners      = { 'svmrbf', 'gboost' , 'naivebayes', 'mkl'  };
+bmark.validate      = { 'fm'    , 'roc'    , 'rand' };
+% bmark.negFolder     = { 'YAC', 'GAC', 'CBb4', 'CBb5', 'Gly+', 'MG', 'BC', 'CBa2', 'CBab', 'HC' };
+% for iter = 1 : numel(bmark.negFolder);     bmark.negFolder{iter} = [bmark.negFolder{iter} '_deepBorder/' ];     end
+% bmark.posFolder     = { 'postSynapseDataset/'};
+
+bmark.normalizeFeatures = 1;
+bmark.validate          = 1;
+bmark.resizeImg         = false;
+
+if(nargin < 1)
+    bmark.featLib           = [1:8];          bmark.learnLib          = [1 2];
+else
+    bmark.featLib           = featChoice; bmark.learnLib          = learnChoice;
+end
+
+RECOMPUTE_FILES = false;
+if RECOMPUTE_FILES;    f_CreateFilenames(bmark);   end
+
+bmark.trainFiles = cell(1,2);
+bmark.testFiles = cell(1,2);
+
+%% positive aligned sample files
+tempFiles = [];
+inputFiles = importdata('/cluster/home/retinamap/datasetCreator/utahDataBase/filenamesPosAligned.txt');
+tempN_half = round(numel(inputFiles)/2);
+for fIter = 1 : numel(inputFiles)
+    tempFiles(fIter).name = inputFiles{fIter};
+end
+bmark.trainFiles{1} = tempFiles(1:tempN_half);
+bmark.testFiles{1}  = tempFiles(tempN_half+1:end);
+numPosSample = numel(inputFiles);
+%% negative sample files
+% for dirIter = 1:numel(bmark.negFolder)
+%     tempFiles = dir(strcat(bmark.dataDir, bmark.negFolder{dirIter}, '/*.png'));
+%     for fIter = numel(tempFiles) : -1 : 1
+%         if tempFiles(fIter).bytes < 1e6
+%             tempFiles(fIter) = [];
+%         else
+%             tempFiles(fIter).name = [bmark.negFolder{dirIter} '/' tempFiles(fIter).name];
+%         end
+%     end
+% %     bmark.trainFiles{2} = [bmark.trainFiles{2} ; tempFiles(1:10)];
+% %     bmark.testFiles{2}  = [bmark.testFiles{2} ; tempFiles(11:20)];
+%     tempN_half = round(numel(tempFiles)/2);
+%     bmark.trainFiles{2} = [bmark.trainFiles{2} ; tempFiles(1:tempN_half)];
+%     bmark.testFiles{2}  = [bmark.testFiles{2} ; tempFiles(tempN_half+1:end)];
+% end
+%% negative deepBorder sample files
+inputFiles = importdata('/cluster/home/retinamap/datasetCreator/utahDataBase/filenamesNegDeep.txt');
+tempN_half = round(numel(inputFiles)/2);
+tempFiles = [];
+for fIter = 1 : numel(inputFiles)
+    tempFiles(fIter).name = inputFiles{fIter};
+end
+bmark.trainFiles{2} = tempFiles(1:tempN_half);
+bmark.testFiles{2}  = tempFiles(tempN_half+1:end);
+numNegSample = numel(inputFiles);
+
+%%
+tempRatio = numPosSample/numNegSample;
+if tempRatio < 0.9 || tempRatio > 1.1
+    if numPosSample < numNegSample
+        tempRatio = numPosSample/numNegSample;
+        for iter = numel(bmark.trainFiles{2}) : -1 : 1
+            if rand > tempRatio
+                bmark.trainFiles{2}(iter) = [];
+            end
+        end
+        for iter = numel(bmark.testFiles{2}) : -1 : 1
+            if rand > tempRatio
+                bmark.testFiles{2}(iter) = [];
+            end
+        end
+    else
+        tempRatio = numNegSample/numPosSample;
+        for iter = numel(bmark.trainFiles{1}) : -1 : 1
+            if rand > tempRatio
+                bmark.trainFiles{1}(iter) = [];
+            end
+        end
+        for iter = numel(bmark.testFiles{1}) : -1 : 1
+            if rand > tempRatio
+                bmark.testFiles{1}(iter) = [];
+            end
+        end
+    end
+end
+
+
+display(['Resize  ' num2str(bmark.resizeImg)]);
+display(['Normalize  ' num2str(bmark.normalizeFeatures)]);
+display(['FeatLib  ' num2str(bmark.featLib)]);
+display(['Learn Lib  ' num2str(bmark.learnLib)]);
+display(['Totally ' num2str(numel(bmark.trainFiles{1})) ' training positive samples chosen.']);
+display(['Totally ' num2str(numel(bmark.trainFiles{2})) ' training negative samples chosen.']);
+display(['Totally ' num2str(numel(bmark.testFiles{1})) ' testing positive samples chosen.']);
+display(['Totally ' num2str(numel(bmark.testFiles{2})) ' testing negative samples chosen.']);

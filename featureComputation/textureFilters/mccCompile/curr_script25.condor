@@ -1,0 +1,17 @@
+User	= vignesh
+Universe        = vanilla
+Requirements = Disk >= 0 && (Machine == "b0001"  || Machine == "b0002"  || Machine == "b0003"  || Machine == "b0004"  || Machine == "b0005"  || Machine == "b0006" || Machine == "b0007"  || Machine == "b0008" || Machine == "b0009"  || Machine == "b0010" || Machine == "b0011" || Machine == "b0012" || Machine == "b0013" ||  Machine == "b0014"  || Machine == "b0015" || Machine == "b0016" || Machine == "n0001" || Machine == "n0002" || Machine == "n0006" || Machine == "n0007" || Machine == "n0008" || Machine == "n0009" || Machine == "n0011" || Machine == "n0012" || Machine == "n0013" || Machine == "n0014" || Machine == "n0015" || Machine == "n0016") && TotalLoadAvg < 2.5
+Rank = TotalLoadAvg
+InputDir	= /cluster/home/$(User)/synapseProject/source/synDetect/benchmark/mccFiles
+OutputDir      = /cluster/home/$(User)/synapseProject/source/synDetect/benchmark/mccFiles/Outputs
+Executable      = $(InputDir)/matlab.sh
+InitialDir      = $(InputDir)
+GetEnv		= true
+
+
+Output = $(OutputDir)/output.25
+
+Error = $(OutputDir)/err.25
+Log = $(OutputDir)/log.25
+Arguments =/cluster/data/synapseDataset/synapseDataset/random/randPatS1/ 5
+Queue
